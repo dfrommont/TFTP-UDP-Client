@@ -1,63 +1,120 @@
-package client;
+package Client;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.io.*;
+import java.net.*;
+import java.util.Scanner;
 
 public class UDPSocketClient {
 
-    // the client will take the IP Address of the server (in dotted decimal format as an argument)
-    // given that for this tutorial both the client and the server will run on the same machine, you can use the loopback address 127.0.0.1
-    public static void main(String[] args) throws IOException {
-        
-        DatagramSocket socket;
-        DatagramPacket packet;
-        
-        if (args.length != 1) {
-            System.out.println("the hostname of the server is required");
-            return;
+    private static final int MAX_PACKET_SIZE = 10000; // Maximum size of UDP packet
+    protected static DatagramSocket clientSocket = null;
+
+    public static void main(String[] args) {
+
+        Scanner input = new Scanner(System.in);
+        System.out.println("UDP Socket Client");
+        System.out.println("Please enter IP or name of Server:");
+        String name = input.nextLine();
+        System.out.println("1. Read file from Server");
+        System.out.println("2. Write file to Server");
+        System.out.println("Pick an option:");
+        int flag = Integer.parseInt(input.nextLine());
+
+        try {
+            // Create a UDP socket
+            clientSocket = new DatagramSocket();
+
+            // Server address and port
+            InetAddress serverAddress = InetAddress.getByName(name);
+            int serverPort = 1234;
+
+            if (flag == 1) {
+                // Request to retrieve a file by name
+                System.out.println("Enter the file name including it's extension:");
+                String file_name = input.nextLine();
+                try {
+                    retrieveFileByName(clientSocket, serverAddress, serverPort, file_name);
+                } catch (IOException error) {
+                    main(args);
+                    throw error;
+                }
+            }
+
+            if (flag == 2) {
+                // Request to send a file to the server
+                System.out.println("Enter the file name including it's extension (File should be in the 'files' directory):");
+                String file_name = input.nextLine();
+                try {
+                    sendFileToServer(clientSocket, serverAddress, serverPort, file_name);
+                } catch (IOException error) {
+                    main(args);
+                    throw error;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (clientSocket != null) {
+                clientSocket.close();
+            }
         }
-        
-        int len = 256;
-        byte[] buf = new byte[len];
-
-        //****************************************************************************************
-        // add a line below to instantiate the DatagramSocket socket object
-        // bind the socket to some port over 1024
-        // Note: this is NOT the port we set in the server
-        // If you put the same port you will get an exception because
-        // the server is also listening to this port and both processes run on the same machine!
-        //****************************************************************************************
-        socket = new DatagramSocket(4000);
-
-        // Add source code below to get the address from args[0], the argument handed in when the process is started.
-        // In Netbeans, add a command line argument by changing the running configuration.
-        // The address must be transfomed from a String to an InetAddress (an IP addresse object in Java).
-        InetAddress address = InetAddress.getByName(args[0]);
-
-        //************************************************************
-        // Add a line to instantiate a packet using the buf byte array
-        // Set the IP address and port fields in the packet so that the packet is sent to the server
-        //************************************************************
-        packet = new DatagramPacket(buf, len);
-        packet.setAddress(address);
-        packet.setPort(9000);
-
-        // Send the datagram packet to the server (this is a blocking call) - we do not care about the data that the packet carries.
-        // The server will respond to any kind of request (i.e. regardless of the packet payload)
-        socket.send(packet);
-
-        //**************************************************************************************
-        // add a line of code below to receive a packet containing the server's response
-        // we can reuse the DatagramPacket instantiated above - all settable values will be overriden when the receive call completes.
-        //**************************************************************************************
-        socket.receive(packet);
-
-        // display response
-        String received = new String(packet.getData());
-        System.out.println("Today's date: " + received.substring(0, packet.getLength()));
-        socket.close();
     }
-    
+
+    private static void retrieveFileByName(DatagramSocket socket, InetAddress serverAddress, int serverPort, String fileName) throws IOException {
+        // Send request to retrieve file by name
+        String request = "GET:" + fileName;
+        byte[] requestData = request.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(requestData, requestData.length, serverAddress, serverPort);
+        socket.send(sendPacket);
+
+        // Receive file data from server
+        byte[] receiveData = new byte[MAX_PACKET_SIZE];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        socket.receive(receivePacket);
+
+        FileOutputStream fileOutputStream = new FileOutputStream("./files/" + fileName);
+
+        // Write received file data to file
+        fileOutputStream.write(receivePacket.getData(), 0, receivePacket.getLength());
+
+        // Close the FileOutputStream
+        fileOutputStream.close();
+
+        InetAddress clientAddress = receivePacket.getAddress();
+        int clientPort = receivePacket.getPort();
+
+        byte[] sendData;
+        String ackMessage = "File received successfully";
+        sendData = ackMessage.getBytes();
+        DatagramPacket ackPacket = new DatagramPacket(sendData, sendData.length, clientAddress, clientPort);
+        clientSocket.send(ackPacket);
+    }
+
+    private static void sendFileToServer(DatagramSocket socket, InetAddress serverAddress, int serverPort, String fileName) throws IOException {
+        // Read file
+        File file = new File("./files/"+fileName);
+        FileInputStream fileInputStream = new FileInputStream(file);
+        byte[] fileData = new byte[(int) file.length()];
+        fileInputStream.read(fileData);
+        fileInputStream.close();
+
+        // Send request to send file to server
+        String request = "PUT:" + fileName;
+        byte[] requestData = request.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(requestData, requestData.length, serverAddress, serverPort);
+        socket.send(sendPacket);
+
+        // Send file data to server
+        DatagramPacket dataPacket = new DatagramPacket(fileData, fileData.length, serverAddress, serverPort);
+        socket.send(dataPacket);
+
+        // Receive acknowledgment from server
+        byte[] receiveData = new byte[MAX_PACKET_SIZE];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        socket.receive(receivePacket);
+
+        // Process acknowledgment
+        String ackMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
+        System.out.println("Server acknowledgment: " + ackMessage);
+    }
 }
