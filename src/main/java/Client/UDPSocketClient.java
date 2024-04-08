@@ -15,8 +15,8 @@ public class UDPSocketClient {
         System.out.println("UDP Socket Client");
         System.out.println("Please enter IP or name of Server:");
         String name = input.nextLine();
-        System.out.println("1. Read file from Server");
-        System.out.println("2. Write file to Server");
+        System.out.println("1. Read file from " + name);
+        System.out.println("2. Write file to " + name);
         System.out.println("Pick an option:");
         int flag = Integer.parseInt(input.nextLine());
 
@@ -80,14 +80,11 @@ public class UDPSocketClient {
         // Close the FileOutputStream
         fileOutputStream.close();
 
-        InetAddress clientAddress = receivePacket.getAddress();
-        int clientPort = receivePacket.getPort();
-
-        byte[] sendData;
-        String ackMessage = "File received successfully";
-        sendData = ackMessage.getBytes();
-        DatagramPacket ackPacket = new DatagramPacket(sendData, sendData.length, clientAddress, clientPort);
+        String ackMessage = fileName + " received successfully";
+        byte[] sendData = ackMessage.getBytes();
+        DatagramPacket ackPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
         clientSocket.send(ackPacket);
+        System.out.println(fileName + " received successfully from " + ackPacket.getAddress() + " (Server)");
     }
 
     private static void sendFileToServer(DatagramSocket socket, InetAddress serverAddress, int serverPort, String fileName) throws IOException {
@@ -115,6 +112,6 @@ public class UDPSocketClient {
 
         // Process acknowledgment
         String ackMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
-        System.out.println("Server acknowledgment: " + ackMessage);
+        System.out.println(receivePacket.getAddress() + " (Server) acknowledgement: " + ackMessage);
     }
 }
