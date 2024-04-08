@@ -62,14 +62,12 @@ public class UDPSocketClient {
 
     private static void retrieveFileByName(DatagramSocket socket, InetAddress serverAddress, int serverPort, String fileName) throws IOException {
         // Send request to retrieve file by name
-        String request = "GET:" + fileName;
-        byte[] requestData = request.getBytes();
-        DatagramPacket sendPacket = new DatagramPacket(requestData, requestData.length, serverAddress, serverPort);
+        String request = "GET " + fileName;
+        DatagramPacket sendPacket = new DatagramPacket(request.getBytes(), request.getBytes().length, serverAddress, serverPort);
         socket.send(sendPacket);
 
         // Receive file data from server
-        byte[] receiveData = new byte[MAX_PACKET_SIZE];
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        DatagramPacket receivePacket = new DatagramPacket(new byte[MAX_PACKET_SIZE], MAX_PACKET_SIZE);
         socket.receive(receivePacket);
 
         FileOutputStream fileOutputStream = new FileOutputStream("./files/" + fileName);
@@ -81,8 +79,7 @@ public class UDPSocketClient {
         fileOutputStream.close();
 
         String ackMessage = fileName + " received successfully";
-        byte[] sendData = ackMessage.getBytes();
-        DatagramPacket ackPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
+        DatagramPacket ackPacket = new DatagramPacket(ackMessage.getBytes(), ackMessage.getBytes().length, serverAddress, serverPort);
         clientSocket.send(ackPacket);
         System.out.println(fileName + " received successfully from " + ackPacket.getAddress() + " (Server)");
     }
@@ -96,9 +93,8 @@ public class UDPSocketClient {
         fileInputStream.close();
 
         // Send request to send file to server
-        String request = "PUT:" + fileName;
-        byte[] requestData = request.getBytes();
-        DatagramPacket sendPacket = new DatagramPacket(requestData, requestData.length, serverAddress, serverPort);
+        String request = "PUT " + fileName;
+        DatagramPacket sendPacket = new DatagramPacket(request.getBytes(), request.getBytes().length, serverAddress, serverPort);
         socket.send(sendPacket);
 
         // Send file data to server
@@ -106,8 +102,7 @@ public class UDPSocketClient {
         socket.send(dataPacket);
 
         // Receive acknowledgment from server
-        byte[] receiveData = new byte[MAX_PACKET_SIZE];
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        DatagramPacket receivePacket = new DatagramPacket(new byte[MAX_PACKET_SIZE], MAX_PACKET_SIZE);
         socket.receive(receivePacket);
 
         // Process acknowledgment
