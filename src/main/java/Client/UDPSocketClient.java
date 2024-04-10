@@ -24,6 +24,8 @@ public class UDPSocketClient {
             // Create a UDP socket
             clientSocket = new DatagramSocket();
 
+            clientSocket.setSoTimeout(5000);
+
             // Server address and port
             InetAddress serverAddress = InetAddress.getByName(name);
             int serverPort = 1234;
@@ -51,8 +53,11 @@ public class UDPSocketClient {
                     throw error;
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            if (e instanceof SocketTimeoutException) {
+                clientSocket.close();
+            }
         } finally {
             if (clientSocket != null) {
                 clientSocket.close();
@@ -60,7 +65,7 @@ public class UDPSocketClient {
         }
     }
 
-    private static void retrieveFileByName(DatagramSocket socket, InetAddress serverAddress, int serverPort, String fileName) throws IOException {
+    private static void retrieveFileByName(DatagramSocket socket, InetAddress serverAddress, int serverPort, String fileName) throws Exception {
         // Send request to retrieve file by name
         String request = "GET " + fileName;
         DatagramPacket sendPacket = new DatagramPacket(request.getBytes(), request.getBytes().length, serverAddress, serverPort);
