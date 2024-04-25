@@ -79,6 +79,11 @@ public class UDPSocketClient {
             ByteBuffer dataBuffer = ByteBuffer.wrap(receivedPacket.getData());
             short opcode = dataBuffer.getShort();
             if (opcode != 3) {
+                if (opcode == 5) { //Check for an error opcode
+                    if (dataBuffer.getShort() == 1) { //ErrorCode 1 is a file not found error
+                        System.out.println(fileName + " could not be found on the server");
+                    }
+                }
                 break; //Only accept a packet with opcode 3 (DATA opcode)
             }
 
