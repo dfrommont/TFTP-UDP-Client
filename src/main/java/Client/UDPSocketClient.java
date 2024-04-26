@@ -33,7 +33,7 @@ public class UDPSocketClient {
                 String fileName = input.nextLine(); //Retrieve file name from Client
                 receiveFile(socket, socketAddress, fileName); //Call method to handle read request
             } else if (option == 2) {
-                System.out.println("Enter the file name including its extension (File should be in the 'client_files' directory):");
+                System.out.println("Enter the file name including its extension:");
                 String fileName = input.nextLine(); //Retrieve file name from Client
                 try {
                     sendFile(socket, socketAddress, fileName); //Call method to handle write request
@@ -69,7 +69,7 @@ public class UDPSocketClient {
         DatagramPacket requestPacket = new DatagramPacket(request, request.length, socketAddress);
         socket.send(requestPacket); //Package request into a packet and send packet to server
 
-        FileOutputStream fileOutputStream = new FileOutputStream("./files/" + fileName); //Open a file input stream on the desired file
+        FileOutputStream fileOutputStream = new FileOutputStream("./src/main/java/Client/" + fileName); //Open a file input stream on the desired file
         int blockNumber = 0;
 
         while (true) {
@@ -125,7 +125,7 @@ public class UDPSocketClient {
         byte[] request = requestBuffer.array();
         DatagramPacket requestPacket = new DatagramPacket(request, request.length, socketAddress);
         socket.send(requestPacket); //Package request into Packet then send to Server
-        File file = new File("./files/" + fileName); //Open the desired file to be sent
+        File file = new File("./src/main/java/Client/" + fileName); //Open the desired file to be sent
         if (!file.exists()) {
             System.out.println("File not found: " + fileName);
             return; //Stop if the desired file cannot be found
